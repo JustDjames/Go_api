@@ -1,0 +1,4 @@
+name: Go_api
+runtime: go
+description: A basic API written in Go. this pulumi project is for the rds instance
+  that the API will connect to
