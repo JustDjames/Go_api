@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/pulumi/pulumi-aws/sdk/v4/go/aws/ec2"
+	"github.com/pulumi/pulumi-aws/sdk/v4/go/aws/rds"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -28,7 +29,7 @@ func main() {
 		// vpc
 
 		tags["Name"] = "Go_api_vpc"
-		vpc, err := ec2.NewVpc(ctx, "go_api_vpc", &ec2.VpcArgs{
+		vpc, err := ec2.NewVpc(ctx, "vpc", &ec2.VpcArgs{
 			CidrBlock: pulumi.String("10.0.0.0/16"),
 			Tags:      pulumi.ToStringMap(MergeMaps(general_tags, tags)),
 		})
@@ -39,7 +40,7 @@ func main() {
 
 		// subnet
 		tags["Name"] = "Go_api_subnet"
-		sub, err := ec2.NewSubnet(ctx, "Go_api_subnet", &ec2.SubnetArgs{
+		sub, err := ec2.NewSubnet(ctx, "subnet", &ec2.SubnetArgs{
 			VpcId:     vpc.ID(),
 			CidrBlock: pulumi.String("10.0.1.0/24"),
 			Tags:      pulumi.ToStringMap(MergeMaps(general_tags, tags)),
@@ -49,10 +50,35 @@ func main() {
 			return err
 
 		}
+
+		// DB subnet group
+
+		// RDS
+		tags["Name"] = "Go_api_rds"
+		rds, err := rds.NewInstance(ctx, "rds", &rds.InstanceArgs{
+			Name:               pulumi.String("users"),
+			InstanceClass:      pulumi.String("db.t3.micro"),
+			AllocatedStorage:   pulumi.Int(20),
+			Engine:             pulumi.String("mysql"),
+			EngineVersion:      pulumi.String("8.0"),
+			ParameterGroupName: pulumi.String("default.mysql8.0"),
+			// need to create this
+			DbSubnetGroupName: ,
+			// also need to create this
+			VpcSecurityGroupIds: ,
+			Username: pulumi.String("root"),
+			// kms encrypt this
+			Password: ,
+			SkipFinalSnapshot:  pulumi.Bool(true),
+		})
+
+		if err != nil {
+			return err
+
+		}
+
 		ctx.Export("vpc_id", vpc.ID())
 		ctx.Export("Subnet_id", sub.ID())
-
-		// vpc security group
 
 		return nil
 	})
