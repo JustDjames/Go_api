@@ -16,16 +16,6 @@ func main() {
 	tags := make(map[string]string)
 
 	pulumi.Run(func(ctx *pulumi.Context) error {
-		// Create an AWS resource (S3 Bucket)
-		// bucket, err := s3.NewBucket(ctx, "my-bucket", nil)
-		// if err != nil {
-		// 	return err
-		// }
-
-		// // Export the name of the bucket
-		// ctx.Export("bucketName", bucket.ID())
-		// return nil
-
 		// vpc
 
 		tags["Name"] = "Go_api_vpc"
@@ -48,10 +38,24 @@ func main() {
 
 		if err != nil {
 			return err
-
 		}
 
+		// vpc security group
+
 		// DB subnet group
+		tags["Name"] = "Go_api_db_subnet"
+
+		sb, err := rds.NewSubnetGroup(ctx, "subnet_group", &rds.SubnetGroupArgs{
+			Name: pulumi.String(tags["Name"]),
+			SubnetIds: pulumi.StringArray{
+				pulumi.Any(sub.ID),	
+			},
+			Tags: pulumi.ToStringMap(MergeMaps(general_tags, tags)), 
+		})
+		
+		if err != nil {
+			return err
+		}
 
 		// RDS
 		tags["Name"] = "Go_api_rds"
@@ -63,7 +67,7 @@ func main() {
 			EngineVersion:      pulumi.String("8.0"),
 			ParameterGroupName: pulumi.String("default.mysql8.0"),
 			// need to create this
-			DbSubnetGroupName: ,
+			DbSubnetGroupName: sb.Name,
 			// also need to create this
 			VpcSecurityGroupIds: ,
 			Username: pulumi.String("root"),
@@ -74,11 +78,10 @@ func main() {
 
 		if err != nil {
 			return err
-
 		}
 
 		ctx.Export("vpc_id", vpc.ID())
-		ctx.Export("Subnet_id", sub.ID())
+		ctx.Export("Subnet_cidr", sub.CidrBlock())
 
 		return nil
 	})
