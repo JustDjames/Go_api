@@ -18,3 +18,13 @@ the API should have the following endpoints that use the specified HTTP methods.
 
 `/newuser` (POST) - add a new user to the users list. the used needs to be provided in JSON
 
+## pulumi config
+
+in the pulumi directory, create a file called `Pulumi.dev.yaml`. in that file you can specify your aws config and some sensitive values which are required for the stack like your ip address. below is a example of the file layout:
+
+```yaml
+config:
+  aws:profile: default
+  aws:region: eu-west-2
+  Go_api:my_ip: <ip>
+```
