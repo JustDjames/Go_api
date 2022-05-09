@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
+	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/rds"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -22,6 +23,8 @@ func main() {
 
 		ip := c.Require("my_ip")
 
+		db_pass := c.RequireSecret("db_pass")
+
 		// vpc
 
 		tags["Name"] = "Go_api_vpc"
@@ -34,12 +37,26 @@ func main() {
 			return err
 		}
 
-		// subnet
-		tags["Name"] = "Go_api_subnet"
-		sub, err := ec2.NewSubnet(ctx, "subnet", &ec2.SubnetArgs{
-			VpcId:     vpc.ID(),
-			CidrBlock: pulumi.String("10.0.1.0/24"),
-			Tags:      pulumi.ToStringMap(MergeMaps(general_tags, tags)),
+		// subnet1
+		tags["Name"] = "Go_api_subnet1"
+		sub1, err := ec2.NewSubnet(ctx, "subnet1", &ec2.SubnetArgs{
+			VpcId:            vpc.ID(),
+			CidrBlock:        pulumi.String("10.0.1.0/24"),
+			Tags:             pulumi.ToStringMap(MergeMaps(general_tags, tags)),
+			AvailabilityZone: pulumi.String("eu-west-2a"),
+		})
+
+		if err != nil {
+			return err
+		}
+
+		// subnet2
+		tags["Name"] = "Go_api_subnet2"
+		sub2, err := ec2.NewSubnet(ctx, "subnet2", &ec2.SubnetArgs{
+			VpcId:            vpc.ID(),
+			CidrBlock:        pulumi.String("10.0.2.0/24"),
+			Tags:             pulumi.ToStringMap(MergeMaps(general_tags, tags)),
+			AvailabilityZone: pulumi.String("eu-west-2b"),
 		})
 
 		if err != nil {
@@ -75,8 +92,17 @@ func main() {
 			return err
 		}
 
-		rta, err := ec2.NewRouteTableAssociation(ctx, "routeTableAssociation", &ec2.RouteTableAssociationArgs{
-			SubnetId:     sub.ID(),
+		rta1, err := ec2.NewRouteTableAssociation(ctx, "routeTableAssociation1", &ec2.RouteTableAssociationArgs{
+			SubnetId:     sub1.ID(),
+			RouteTableId: rt.ID(),
+		})
+
+		if err != nil {
+			return err
+		}
+
+		rta2, err := ec2.NewRouteTableAssociation(ctx, "routeTableAssociation2", &ec2.RouteTableAssociationArgs{
+			SubnetId:     sub2.ID(),
 			RouteTableId: rt.ID(),
 		})
 
@@ -117,9 +143,18 @@ func main() {
 			return err
 		}
 
-		nacla, err := ec2.NewNetworkAclAssociation(ctx, "naclAssociation", &ec2.NetworkAclAssociationArgs{
+		nacla1, err := ec2.NewNetworkAclAssociation(ctx, "naclAssociation1", &ec2.NetworkAclAssociationArgs{
 			NetworkAclId: nacl.ID(),
-			SubnetId:     sub.ID(),
+			SubnetId:     sub1.ID(),
+		})
+
+		if err != nil {
+			return err
+		}
+
+		nacla2, err := ec2.NewNetworkAclAssociation(ctx, "naclAssociation2", &ec2.NetworkAclAssociationArgs{
+			NetworkAclId: nacl.ID(),
+			SubnetId:     sub2.ID(),
 		})
 
 		if err != nil {
@@ -129,6 +164,7 @@ func main() {
 		// vpc security group
 		tags["Name"] = "Go_api_sg"
 		sg, err := ec2.NewSecurityGroup(ctx, "sg", &ec2.SecurityGroupArgs{
+			Name:        pulumi.String(tags["Name"]),
 			Description: pulumi.String("Security Group to allow access to MySql RDS from my ip"),
 			VpcId:       vpc.ID(),
 			Ingress: ec2.SecurityGroupIngressArray{
@@ -159,48 +195,51 @@ func main() {
 		}
 
 		// DB subnet group
-		// tags["Name"] = "Go_api_db_subnet"
+		tags["Name"] = "go_api_db_subnet"
 
-		// sb, err := rds.NewSubnetGroup(ctx, "subnet_group", &rds.SubnetGroupArgs{
-		// 	Name: pulumi.String(tags["Name"]),
-		// 	SubnetIds: pulumi.StringArray{
-		// 		pulumi.Any(sub.ID),
-		// 	},
-		// 	Tags: pulumi.ToStringMap(MergeMaps(general_tags, tags)),
-		// })
+		sb, err := rds.NewSubnetGroup(ctx, "subnet_group", &rds.SubnetGroupArgs{
+			Name: pulumi.String(tags["Name"]),
+			SubnetIds: pulumi.StringArray{
+				sub1.ID(),
+				sub2.ID(),
+			},
+			Tags: pulumi.ToStringMap(MergeMaps(general_tags, tags)),
+		})
 
-		// if err != nil {
-		// 	return err
-		// }
+		if err != nil {
+			return err
+		}
 
 		// RDS
-		// tags["Name"] = "Go_api_rds"
-		// rds, err := rds.NewInstance(ctx, "rds", &rds.InstanceArgs{
-		// 	Name:               pulumi.String("users"),
-		// 	InstanceClass:      pulumi.String("db.t3.micro"),
-		// 	AllocatedStorage:   pulumi.Int(20),
-		// 	Engine:             pulumi.String("mysql"),
-		// 	EngineVersion:      pulumi.String("8.0"),
-		// 	ParameterGroupName: pulumi.String("default.mysql8.0"),
-		// 	// need to create this
-		// 	DbSubnetGroupName: sb.Name,
-		// 	// also need to create this
-		// 	VpcSecurityGroupIds: ,
-		// 	Username: pulumi.String("root"),
-		// 	// kms encrypt this
-		// 	Password: ,
-		// 	SkipFinalSnapshot:  pulumi.Bool(true),
-		// })
+		tags["Name"] = "Go_api_rds"
+		rds, err := rds.NewInstance(ctx, "rds", &rds.InstanceArgs{
+			DbName:             pulumi.String("users"),
+			InstanceClass:      pulumi.String("db.t3.micro"),
+			AllocatedStorage:   pulumi.Int(20),
+			Engine:             pulumi.String("mysql"),
+			EngineVersion:      pulumi.String("8.0"),
+			ParameterGroupName: pulumi.String("default.mysql8.0"),
+			DbSubnetGroupName:  sb.Name,
+			VpcSecurityGroupIds: pulumi.StringArray{
+				sg.ID(),
+			},
+			Username: pulumi.String("root"),
 
-		// if err != nil {
-		// 	return err
-		// }
+			Password:          db_pass,
+			SkipFinalSnapshot: pulumi.Bool(true),
+			Tags:              pulumi.ToStringMap(MergeMaps(general_tags, tags)),
+		})
+
+		if err != nil {
+			return err
+		}
 
 		ctx.Export("vpc_id", vpc.ID())
-		ctx.Export("Subnet_cidr", sub.CidrBlock)
-		ctx.Export("route_table_association_id", rta.ID())
-		ctx.Export("nacl_association_id", nacla.ID())
-		ctx.Export("sg_id", sg.ID())
+		ctx.Export("route_table_association1_id", rta1.ID())
+		ctx.Export("route_table_association2_id", rta2.ID())
+		ctx.Export("nacl_association1_id", nacla1.ID())
+		ctx.Export("nacl_association2_id", nacla2.ID())
+		ctx.Export("rds_endpoint", rds.Endpoint)
 		return nil
 	})
 }

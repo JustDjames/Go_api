@@ -28,3 +28,16 @@ config:
   aws:region: eu-west-2
   Go_api:my_ip: <ip>
 ```
+
+you will also need to add the database password to this file. You do this by running the following command:
+
+```bash
+pulumi config set --secret db_pass <password_value>
+```
+
+This will add the encrypted value to the `Pulumi.dev.yaml`. you can retrieve this value by running:
+
+```bash
+pulumi config get db_pass
+```
+
