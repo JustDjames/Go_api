@@ -29,8 +29,9 @@ func main() {
 
 		tags["Name"] = "Go_api_vpc"
 		vpc, err := ec2.NewVpc(ctx, "vpc", &ec2.VpcArgs{
-			CidrBlock: pulumi.String("10.0.0.0/16"),
-			Tags:      pulumi.ToStringMap(MergeMaps(general_tags, tags)),
+			CidrBlock:          pulumi.String("10.0.0.0/16"),
+			EnableDnsHostnames: pulumi.Bool(true),
+			Tags:               pulumi.ToStringMap(MergeMaps(general_tags, tags)),
 		})
 
 		if err != nil {
@@ -211,8 +212,9 @@ func main() {
 		}
 
 		// RDS
-		tags["Name"] = "Go_api_rds"
+		tags["Name"] = "go-api-rds"
 		rds, err := rds.NewInstance(ctx, "rds", &rds.InstanceArgs{
+			Identifier:         pulumi.String(tags["Name"]),
 			DbName:             pulumi.String("users"),
 			InstanceClass:      pulumi.String("db.t3.micro"),
 			AllocatedStorage:   pulumi.Int(20),
@@ -225,9 +227,10 @@ func main() {
 			},
 			Username: pulumi.String("root"),
 
-			Password:          db_pass,
-			SkipFinalSnapshot: pulumi.Bool(true),
-			Tags:              pulumi.ToStringMap(MergeMaps(general_tags, tags)),
+			Password:           db_pass,
+			SkipFinalSnapshot:  pulumi.Bool(true),
+			PubliclyAccessible: pulumi.Bool(true),
+			Tags:               pulumi.ToStringMap(MergeMaps(general_tags, tags)),
 		})
 
 		if err != nil {
