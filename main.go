@@ -39,20 +39,14 @@ func var_parser(arg string, env_var string, default_var string) (v string) {
 		//  check env var exists if arg is empty
 		env, exist := os.LookupEnv(env_var)
 
-		if !exist {
-			err.Printf("%s not set in either environment vars or arguments.\n\n", env_var)
-			flag.PrintDefaults()
-			os.Exit(1)
-		} else {
-			v = env
-		}
-
-		if exist && env != "" {
+		if exist {
 			v = env
 		} else if default_var != "" {
+			info.Printf("Environment Variable %s does not exist. Using default value %s ", env_var, default_var)
+
 			v = default_var
 		} else {
-			err.Printf("%s not set in either environment vars or arguments.\n\n", env_var)
+			err.Printf("%s not set in either environment vars or arguments and no default value availble.\n\n", env_var)
 			flag.PrintDefaults()
 			os.Exit(1)
 		}
