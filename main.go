@@ -73,10 +73,21 @@ func main() {
 	db_name := var_parser(*db_name_arg, "DB_NAME", "")
 	api_port := var_parser(*api_port_arg, "API_PORT", "8080")
 
-	info.Println("db_hostname:", db_hostname)
-	info.Println("db_pass:", db_pass)
-	info.Println("db_user:", db_user)
-	info.Println("db_port:", db_port)
-	info.Println("db_name:", db_name)
-	info.Println("dapi_port", api_port)
+	debug.Println("db_hostname:", db_hostname)
+	debug.Println("db_pass:", db_pass)
+	debug.Println("db_user:", db_user)
+	debug.Println("db_port:", db_port)
+	debug.Println("db_name:", db_name)
+	debug.Println("api_port", api_port)
+
+	e := db_init(db_user, db_pass, db_hostname, db_port, db_name)
+
+	if e != nil {
+		err.Printf("error encountered when checking connection to database: %s", e)
+		os.Exit(1)
+	} else {
+		info.Print("Database connection created!")
+	}
+
+	defer db.Close()
 }
