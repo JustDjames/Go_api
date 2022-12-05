@@ -2,40 +2,27 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
-	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// global var that allows application access to Db handler
-var db *sql.DB
+func check_conn(db *sql.DB) error {
+	// use Ping to check that DB connection still exists and establish a connection if it doesn't
 
-func db_init(user string, pass string, hostname string, port string, db_name string) error {
+	debug.Println("checking for Database connections")
+	e := db.Ping()
 
-	// creating the connection string from the arguments
+	return e
+}
 
-	debug.Print("creating database handler")
-
-	connection_string := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, pass, hostname, port, db_name)
-
-	db, e := sql.Open("mysql", connection_string)
+func check_table(db *sql.DB, table string) error {
+	e := check_conn(db)
 
 	if e != nil {
-		err.Printf("error encountered when creating handle for database: %s", e)
-		os.Exit(1)
+		return e
 	}
 
-	// check that connection to database is still alive
+	// check for table
 
-	// debug.Print("checking database connection")
-
-	// e = db.Ping()
-
-	// if e != nil {
-
-	// }
-
-	//  returning Ping which will check the connection to the database
-	return db.Ping()
+	// check columns in table are correct datatypes
 }

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 )
@@ -61,7 +63,7 @@ func main() {
 	db_pass_arg := flag.String("db_pass", "", "The password for the user used connect to database")
 	db_user_arg := flag.String("db_user", "", "The user used to connect to database")
 	db_port_arg := flag.String("db_port", "", "The database port")
-	db_name_arg := flag.String("db_name", "", "The name of the database")
+	db_name_arg := flag.String("db_name", "", "The name of the database (and Table)")
 	api_port_arg := flag.String("api_port", "", "The port the api will listening on")
 
 	flag.Parse()
@@ -80,14 +82,25 @@ func main() {
 	debug.Println("db_name:", db_name)
 	debug.Println("api_port", api_port)
 
-	e := db_init(db_user, db_pass, db_hostname, db_port, db_name)
+	// creating the connection string from the arguments
+
+	debug.Print("creating database handler")
+
+	connection_string := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", db_user, db_pass, db_hostname, db_port, db_name)
+
+	db, e := sql.Open("mysql", connection_string)
 
 	if e != nil {
-		err.Printf("error encountered when checking connection to database: %s", e)
+		err.Printf("error encountered when creating handle for database: %s", e)
+		os.Exit(1)
+	}
+
+	e = check_conn(db)
+
+	if e != nil {
+		err.Printf("error encountered when checking database connection: %s", e)
 		os.Exit(1)
 	} else {
 		info.Print("Database connection created!")
 	}
-
-	defer db.Close()
 }
