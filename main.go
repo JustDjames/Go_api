@@ -21,6 +21,7 @@ var (
 	db_user     string
 	db_port     string
 	db_name     string
+	db_table    string
 	api_port    string
 )
 
@@ -63,8 +64,9 @@ func main() {
 	db_pass_arg := flag.String("db_pass", "", "The password for the user used connect to database")
 	db_user_arg := flag.String("db_user", "", "The user used to connect to database")
 	db_port_arg := flag.String("db_port", "", "The database port")
-	db_name_arg := flag.String("db_name", "", "The name of the database (and Table)")
-	api_port_arg := flag.String("api_port", "", "The port the api will listening on")
+	db_name_arg := flag.String("db_name", "", "The name of the database")
+	db_table_arg := flag.String("db_table", "", "The name of the table used in the database. defaults to same value as the db_name argument")
+	api_port_arg := flag.String("api_port", "", "The port the api will listening on. defaults to 8080")
 
 	flag.Parse()
 
@@ -73,6 +75,7 @@ func main() {
 	db_user := var_parser(*db_user_arg, "DB_USER", "")
 	db_port := var_parser(*db_port_arg, "DB_PORT", "")
 	db_name := var_parser(*db_name_arg, "DB_NAME", "")
+	db_table := var_parser(*db_table_arg, "DB_TABLE", db_name)
 	api_port := var_parser(*api_port_arg, "API_PORT", "8080")
 
 	debug.Println("db_hostname:", db_hostname)
@@ -80,6 +83,7 @@ func main() {
 	debug.Println("db_user:", db_user)
 	debug.Println("db_port:", db_port)
 	debug.Println("db_name:", db_name)
+	debug.Println("db_table:", db_table)
 	debug.Println("api_port", api_port)
 
 	// creating the connection string from the arguments
@@ -102,5 +106,16 @@ func main() {
 		os.Exit(1)
 	} else {
 		info.Print("Database connection created!")
+	}
+
+	e, table_exist := check_table(db, db_table)
+
+	if e != nil {
+		err.Printf("error encountered when checking %s table in database: %s", db_table, e)
+		os.Exit(1)
+	} else if table_exist == false {
+		err.Printf("table %s doesn't exists in database!", db_table)
+	} else {
+		info.Printf("table %s exists in database!", db_table)
 	}
 }
