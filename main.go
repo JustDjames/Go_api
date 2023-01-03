@@ -108,13 +108,17 @@ func main() {
 		info.Print("Database connection created!")
 	}
 
-	e, table_exist := check_table(db, db_table)
+	e, table_exist, columns_correct := check_table(db, db_table)
 
 	if e != nil {
 		err.Printf("error encountered when checking %s table in database: %s", db_table, e)
 		os.Exit(1)
 	} else if table_exist == false {
 		err.Printf("table %s doesn't exists in database!", db_table)
+		os.Exit(1)
+	} else if columns_correct == false {
+		err.Printf("Table %s colums are incorrectly configured!", db_table)
+		os.Exit(1)
 	} else {
 		info.Printf("table %s exists in database!", db_table)
 	}
